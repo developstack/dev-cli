@@ -44,6 +44,20 @@ type Command struct {
 	SkillSlug    string `json:"skill_slug,omitempty"`
 	SkillVersion string `json:"skill_version,omitempty"`
 	DownloadURL  string `json:"download_url,omitempty"`
+	// ModelConfig 是模型网关配置（apply_model_config 指令携带）。
+	ModelConfig *ModelConfig `json:"model_config,omitempty"`
+}
+
+// ModelConfig 是平台下发的模型网关配置（**虚拟密钥**，只对平台 /v1 有效）。
+//
+// 学习点：上游供应商的真钥永远留在服务端；下发的是可限预算、可吊销的虚拟密钥 ——
+// 所以即使它落到开发机，爆炸半径也远小于供应商真钥。
+type ModelConfig struct {
+	BaseURL          string   `json:"base_url"`
+	VirtualKey       string   `json:"virtual_key,omitempty"`
+	VirtualKeySecret string   `json:"virtual_key_secret,omitempty"`
+	Provider         string   `json:"provider,omitempty"`
+	Models           []string `json:"models,omitempty"`
 }
 
 // 命令类型。
@@ -52,6 +66,8 @@ const (
 	CommandInstallSkill = "install_skill"
 	// CommandUninstallSkill 卸载技能。
 	CommandUninstallSkill = "uninstall_skill"
+	// CommandApplyModelConfig 应用模型网关配置。
+	CommandApplyModelConfig = "apply_model_config"
 )
 
 // InstalledSkill 是客户端上报的"已装技能"。

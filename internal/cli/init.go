@@ -56,6 +56,7 @@ func runInit(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err := prepareLayout(stdout, root); err != nil {
 		return fail(stderr, err)
 	}
+	checkAgents(stdout)
 
 	settings := config.Settings{
 		APIKey: *apiKey, Endpoint: client.Endpoint(),
@@ -73,6 +74,26 @@ func runInit(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintln(stdout, "\n开始同步技能…")
 	return runSync(ctx, []string{"--dir", root, "--endpoint", client.Endpoint()}, stdout, stderr)
+}
+
+// checkAgents 体检各 agent 是否已安装；缺的就问要不要现在装。
+//
+// 学习点：**在 init 就查** —— 等到 `dev-cli start` 才发现没装，用户已经白等一轮。
+// 而已安装的直接报路径，让用户确认"等下启动的就是它"。
+func checkAgents(stdout io.Writer) {
+	fmt.Fprintln(stdout, "\nAI 编码工具体检：")
+	for _, a := range agents.All() {
+		if path, ok := a.Detect(); ok {
+			fmt.Fprintf(stdout, "  %-12s ✅ %s\n", a.Name, path)
+			continue
+		}
+		fmt.Fprintf(stdout, "  %-12s ⚠️  未安装\n", a.Name)
+		if _, ready, err := agents.EnsureInstalled(os.Stdin, stdout, a); err != nil {
+			fmt.Fprintf(stdout, "     安装失败：%v\n", err)
+		} else if !ready {
+			fmt.Fprintf(stdout, "     之后可用 dev-cli start %s 再试\n", a.ID)
+		}
+	}
 }
 
 // prepareLayout 建目录骨架、检查说明文件、配置 git 忽略。

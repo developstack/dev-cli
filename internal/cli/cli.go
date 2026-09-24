@@ -48,6 +48,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "init":
 		return runInit(ctx, args[1:], stdout, stderr)
+	case "start":
+		return runStart(ctx, args[1:], stdout, stderr)
 	case "sync":
 		return runSync(ctx, args[1:], stdout, stderr)
 	case "status":
@@ -71,10 +73,17 @@ func printUsage(w io.Writer) {
 
 用法：
   dev-cli init --apikey=<平台 API Key> [--endpoint=<平台地址>] [--project=<项目 id>]
+      初始化会顺带体检 claude / pi 是否安装，缺了可以当场装
       初始化：校验密钥 → 选项目 → 建目录骨架 → 同步技能 → 配 .gitignore → 存凭据
 
+  dev-cli start [本工具的参数] <agent> [传给 agent 的参数...]
+      带上项目的平台网关配置启动 agent（例：dev-cli start claude --resume）
+      学习点：agent 名**之后**的参数原样透传给 agent —— 所以本工具的参数要放前面：
+        dev-cli start --dir=/path/to/proj claude --resume
+      支持：claude、pi；没装会问你要不要现在装
+
   dev-cli sync
-      与平台对账：拉取待执行命令并安装/卸载技能（没初始化会提示先 init）
+      与平台对账：技能与模型网关配置（没初始化会提示先 init）
 
   dev-cli status
       显示当前认证与已装技能状态
@@ -86,6 +95,10 @@ func printUsage(w io.Writer) {
   --endpoint  平台根地址（默认 `+platform.DefaultEndpoint+`，也可用 DEV_CLI_ENDPOINT）
   --dir       项目根目录（默认当前目录）
   --project   直接指定项目 id（跳过交互选择）
+
+支持的 agent：
+  claude   启动命令 = claude --permission-mode bypassPermissions，注入 ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN
+  pi       启动命令 = pi --provider dev-cli，注入 DEV_CLI_GATEWAY_KEY（provider 里的 apiKey 用 $ENV 引用）
 `)
 }
 

@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+
+	"github.com/developstack/dev-cli/internal/config"
+	"github.com/developstack/dev-cli/internal/gateway"
 
 	"github.com/developstack/dev-cli/internal/platform"
 	"github.com/developstack/dev-cli/internal/skills"
@@ -88,9 +92,32 @@ func applyCommand(
 		}
 		fmt.Fprintf(stdout, "  ✓ 卸载 %s\n", cmd.SkillSlug)
 		return nil
+	case platform.CommandApplyModelConfig:
+		return applyModelConfig(root, cmd.ModelConfig, stdout)
 	default:
 		return fmt.Errorf("未知指令类型 %q（可能需要升级 dev-cli）", cmd.Type)
 	}
+}
+
+// applyModelConfig 把平台下发的网关配置存到项目里（.dev-cli/auth.json，0600 + gitignore）。
+//
+// 学习点：**只存不用** —— 这里不做任何工具配置的改动；`dev-cli start` 启动 agent 时才把它
+// 注入子进程环境。所以密钥永远不出现在 `~/.claude`、`models.json` 这些会被同步/分享的地方。
+func applyModelConfig(root string, cfg *platform.ModelConfig, stdout io.Writer) error {
+	if cfg == nil || cfg.BaseURL == "" || cfg.VirtualKeySecret == "" {
+		fmt.Fprintln(stdout, "  · 平台未下发网关配置（跳过）")
+		return nil
+	}
+	stored := gateway.Config{
+		BaseURL: cfg.BaseURL, APIKey: cfg.VirtualKeySecret,
+		Provider: cfg.Provider, Models: cfg.Models,
+	}
+	if err := gateway.Save(root, stored); err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "  ✓ 网关配置已保存（%s，密钥 %s）\n",
+		filepath.Join(config.DirName, gateway.FileName), stored.Masked())
+	return nil
 }
 
 // installedAsReport 把本地已装技能转成上报形状。

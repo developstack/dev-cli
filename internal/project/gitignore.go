@@ -32,6 +32,8 @@ const (
 func IgnorePatterns() []string {
 	patterns := []string{
 		config.DirName + "/settings.json",
+		// auth.json 里是平台下发的**虚拟密钥**（只对平台 /v1 有效、可限预算、可吊销）。
+		config.DirName + "/auth.json",
 		config.DirName + "/skills/",
 	}
 	for _, dir := range agents.SkillDirs() {
