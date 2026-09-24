@@ -55,7 +55,8 @@ jobs:
           fi
           ls -lh dev-cli_*
 
-      - uses: softprops/action-gh-release@v2
+      # v2 还是 node20（会打弃用警告）；v3 才是 node24。
+      - uses: softprops/action-gh-release@v3
         with:
           files: dev-cli_*
           generate_release_notes: true

@@ -55,7 +55,7 @@ func printUsage(w io.Writer) {
 	fmt.Fprint(w, `dev-cli —— 把平台的项目配置同步到本地 AI 编码工具
 
 用法：
-  dev-cli init --apikey=<平台 API Key> [--endpoint=<平台地址>] [--project=<项目 id>] [--yes]
+  dev-cli init --apikey=<平台 API Key> [--endpoint=<平台地址>] [--project=<项目 id>]
       初始化：校验密钥 → 选项目 → 建目录骨架 → 同步技能 → 配 .gitignore → 存凭据
 
   dev-cli sync
@@ -70,6 +70,7 @@ func printUsage(w io.Writer) {
 常用参数：
   --endpoint  平台根地址（默认 `+platform.DefaultEndpoint+`，也可用 DEV_CLI_ENDPOINT）
   --dir       项目根目录（默认当前目录）
+  --project   直接指定项目 id（跳过交互选择）
 `)
 }
 
