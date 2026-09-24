@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,20 @@ import (
 
 // Version 是构建时注入的版本（见 .github/workflows/release.yml）。
 var Version = "dev"
+
+// resolvedVersion 返回可展示的版本号。
+//
+// 学习点：`go install ...@vX.Y.Z` 走的是标准构建，没有我们的 ldflags 注入 ——
+// 直接从模块信息里取版本，用户看到的就是真实版本而不是 "dev"。
+func resolvedVersion() string {
+	if Version != "" && Version != "dev" {
+		return Version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return Version
+}
 
 // Run 执行一次命令；返回进程退出码。
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -38,7 +53,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case "status":
 		return runStatus(ctx, args[1:], stdout)
 	case "version", "--version", "-v":
-		fmt.Fprintf(stdout, "dev-cli %s\n", Version)
+		fmt.Fprintf(stdout, "dev-cli %s\n", resolvedVersion())
 		return 0
 	case "help", "--help", "-h":
 		printUsage(stdout)
