@@ -9,6 +9,10 @@ permissions:
   contents: write
 
 jobs:
+  # 学习点（**为什么拆成两个 job**）：一开始把 action-gh-release 放在 matrix 里，
+# 6 个 job 会**同时**去创建同一个 tag 的 Release —— 结果是每次发版都多出一个 Draft
+# （实测 v0.1.1/v0.1.2 都出现了 6 个 job 抢建、最后留下一个 draft + 一个正式版）。
+# 正确做法：矩阵只负责**构建并上传 artifact**，再由一个 job 统一建 Release。
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -25,7 +29,6 @@ jobs:
       # 学习点：用 node24 运行时的 action 版本（v4 是 node20，已被 GitHub 弃用并会打警告）。
       - uses: actions/checkout@v5
 
-      # 学习点：v5 还是 node20 运行时（会被打弃用警告）；v6+ 才是 node24。
       # cache: false —— 本仓**零依赖**（没有 go.sum），开着缓存只会报 "Dependencies file is not found"。
       - uses: actions/setup-go@v6
         with:
@@ -55,8 +58,26 @@ jobs:
           fi
           ls -lh dev-cli_*
 
-      # v2 还是 node20（会打弃用警告）；v3 才是 node24。
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dev-cli_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dev-cli_${{ matrix.goos }}_${{ matrix.goarch }}.*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+          path: dist
+
+      - name: 列出产物（排查用）
+        run: ls -lh dist
+
+      # 单 job 建 Release —— 不会再抢建出 Draft。
       - uses: softprops/action-gh-release@v3
         with:
-          files: dev-cli_*
+          files: dist/dev-cli_*
           generate_release_notes: true
