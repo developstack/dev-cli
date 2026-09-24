@@ -1,0 +1,58 @@
+name: release
+
+# 推一个 v* tag 就发版：构建三端（macOS / Linux / Windows × amd64 / arm64）并挂到 Release。
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+          - { goos: windows, goarch: arm64 }
+    steps:
+      # 学习点：用 node24 运行时的 action 版本（v4 是 node20，已被 GitHub 弃用并会打警告）。
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: 构建并打包
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -eu
+          ext=""
+          if [ "$GOOS" = "windows" ]; then ext=".exe"; fi
+
+          # 学习点：CGO_ENABLED=0 才能纯静态交叉编译（发布物不依赖目标机 libc）。
+          # -X 把 tag 注入版本号，`dev-cli version` 就能报出真实版本。
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X github.com/developstack/dev-cli/internal/cli.Version=${GITHUB_REF_NAME}" \
+            -o "dev-cli${ext}" .
+
+          name="dev-cli_${GOOS}_${GOARCH}"
+          if [ "$GOOS" = "windows" ]; then
+            zip -q "${name}.zip" "dev-cli${ext}"
+          else
+            tar czf "${name}.tar.gz" "dev-cli${ext}"
+          fi
+          ls -lh dev-cli_*
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dev-cli_*
+          generate_release_notes: true

@@ -1,0 +1,6 @@
+# 构建产物
+/dist/
+*.exe
+
+# 本机凭据（绝不提交）
+.dev-cli/settings.json
