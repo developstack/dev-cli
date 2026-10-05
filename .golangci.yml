@@ -1,0 +1,187 @@
+# .golangci.yml — dev-cli（cli/ 模块）的 golangci-lint v2 配置。
+# 与 backend/.golangci.yml 同一套规则（体积、复杂度、错误处理、安全），只换模块路径并去掉后端特有的豁免；
+# 两个模块独立构建、独立检查（设计稿 §10.8），所以各放一份而不是共享。
+# 注意：v2 与 v1 不兼容，必须声明 version: "2"，格式化器在 formatters 段。
+version: "2"
+
+run:
+  timeout: 5m
+  relative-path-mode: gomod
+  tests: true
+
+output:
+  formats:
+    text:
+      path: stdout
+      print-linter-name: true
+      print-issued-lines: true
+
+linters:
+  # standard = errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    # —— 体积与复杂度约束 ——
+    - funlen
+    - cyclop
+    - gocognit
+    - gocyclo
+    - dupl
+    - nestif
+    - lll
+    - revive
+    # —— 错误处理 ——
+    - errcheck
+    - errorlint
+    - errname
+    - nilerr
+    # —— 正确性/健壮性 ——
+    - bodyclose
+    - contextcheck
+    - noctx
+    - exhaustive
+    - copyloopvar
+    - durationcheck
+    - unconvert
+    - wastedassign
+    - predeclared
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    # —— 安全 ——
+    - gosec
+    # —— 风格/可读性 ——
+    - gocritic
+    - misspell
+    - godot
+    - whitespace
+    - nolintlint
+
+  settings:
+    funlen:
+      lines: 80
+      statements: 50
+      ignore-comments: true
+
+    cyclop:
+      max-complexity: 15
+      package-average: 0.0
+
+    gocyclo:
+      min-complexity: 15
+
+    gocognit:
+      min-complexity: 20
+
+    dupl:
+      threshold: 150
+
+    nestif:
+      min-complexity: 5
+
+    lll:
+      line-length: 120
+      tab-width: 4
+
+    revive:
+      rules:
+        - name: file-length-limit
+          severity: error
+          arguments:
+            - max: 500
+              skip-comments: true
+              skip-blank-lines: true
+        - name: argument-limit
+          severity: error
+          arguments: [5]
+        - name: function-result-limit
+          severity: error
+          arguments: [3]
+        - name: max-public-structs
+          severity: warning
+          arguments: [10]
+        - name: exported
+          severity: warning
+          arguments: ["checkPrivateReceivers", "disableStutteringCheck"]
+        - name: package-comments
+          severity: warning
+        - name: var-naming
+          severity: error
+        - name: unused-parameter
+          severity: warning
+        - name: bare-return
+          severity: warning
+        - name: error-strings
+          severity: warning
+        - name: early-return
+          severity: warning
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+      disabled-checks:
+        - hugeParam
+
+    godot:
+      scope: declarations
+      period: true
+
+    misspell:
+      locale: US
+
+    gosec:
+      excludes:
+        - G404
+
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+
+  exclusions:
+    generated: lax
+    warn-unused: false
+    presets:
+      - std-error-handling
+      - common-false-positives
+    paths:
+      - ".*\\.pb\\.go$"
+      - ".*\\.gen\\.go$"
+      - ".*_mock\\.go$"
+      - "mock_.*\\.go$"
+      - "third_party/"
+    rules:
+      - path: _test\.go
+        linters:
+          - funlen
+          - gocognit
+          - cyclop
+          - gocyclo
+          - dupl
+          - lll
+          - gosec
+          - errcheck
+      - path: ".*\\.pb\\.go$"
+        linters: [revive, funlen, lll]
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+  settings:
+    gofumpt:
+      module-path: github.com/developstack/aidevstack/cli
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/developstack/aidevstack/cli)
+  exclusions:
+    generated: lax
+    paths:
+      - ".*\\.pb\\.go$"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: true

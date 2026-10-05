@@ -1,0 +1,9 @@
+# oapi-codegen 配置：只为 dev-cli 生成 devenv 端点的**类型**（不生成客户端代码），产物入库。
+# 重新生成：cd cli && go generate ./internal/api（CI 会重新生成并 git diff --exit-code，spec 漂移即失败）。
+package: api
+generate:
+  models: true
+output-options:
+  include-tags: [Devenv]
+  name-normalizer: ToCamelCaseWithInitialisms
+output: dto.gen.go

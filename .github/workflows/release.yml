@@ -1,0 +1,87 @@
+name: Release
+
+# 本文件在主仓里位于 cli/.github/，对主仓不生效；主仓 cli-release 工作流把 cli/ 镜像到公开仓
+# developstack/dev-cli（cli/ 即仓库根）后，它成为公开仓的发布工作流。
+#
+# 触发：主仓镜像时推 tag v<semver> → 构建 6 个目标 → 用本仓内置 GITHUB_TOKEN 发 Release
+# → 用 deploy key（secret HOMEBREW_TAP_DEPLOY_KEY，公钥挂在 developstack/homebrew-tap 上、可写）
+# 推送更新后的 Homebrew formula。全程不需要任何个人令牌。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Resolve version
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "::error::tag ${GITHUB_REF_NAME} is not v<semver>"; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Test
+        run: go test ./...
+      - name: Build and package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          # SOURCE_COMMIT 由主仓镜像步骤写入：二进制里记录的是主仓源提交，而不是镜像提交。
+          commit=$(cat SOURCE_COMMIT 2>/dev/null || echo "${GITHUB_SHA}")
+          mkdir -p dist
+          ldflags="-s -w -X github.com/developstack/aidevstack/cli/internal/buildinfo.Version=${VERSION}"
+          ldflags="$ldflags -X github.com/developstack/aidevstack/cli/internal/buildinfo.Commit=${commit::12}"
+          ldflags="$ldflags -X github.com/developstack/aidevstack/cli/internal/buildinfo.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os=${target%/*}; arch=${target#*/}; ext=""
+            [ "$os" = windows ] && ext=".exe"
+            work=$(mktemp -d)
+            GOOS=$os GOARCH=$arch CGO_ENABLED=0 go build -trimpath -ldflags "$ldflags" -o "$work/dev-cli$ext" ./cmd/dev-cli
+            name="dev-cli_${os}_${arch}"
+            if [ "$os" = windows ]; then
+              (cd "$work" && zip -q "$OLDPWD/dist/$name.zip" "dev-cli$ext")
+            else
+              tar -C "$work" -czf "dist/$name.tar.gz" "dev-cli$ext"
+            fi
+          done
+          cp install.sh dist/install.sh
+          (cd dist && sha256sum dev-cli_* install.sh > checksums.txt && ls -lh)
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "dev-cli ${VERSION}" \
+            --notes "dev-cli ${VERSION}。安装：\`brew install developstack/tap/dev-cli\` 或 \`curl -fsSL https://github.com/developstack/dev-cli/releases/latest/download/install.sh | sh\`。源提交：$(cat SOURCE_COMMIT 2>/dev/null || echo "${GITHUB_SHA}")"
+      - name: Update Homebrew formula
+        env:
+          TAP_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          set -eu
+          if [ -z "${TAP_KEY}" ]; then
+            echo "::error::secret HOMEBREW_TAP_DEPLOY_KEY 未配置（见主仓 docs/runbook/dev-cli发布.md）"; exit 1
+          fi
+          mkdir -p ~/.ssh && printf '%s\n' "$TAP_KEY" > ~/.ssh/tap && chmod 600 ~/.ssh/tap
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          git clone --depth 1 git@github.com:developstack/homebrew-tap.git tap
+          cd tap
+          bash scripts/update-formula.sh
+          if git diff --quiet -- Formula/; then echo "formula 已是最新"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/
+          git commit -m "chore(dev-cli): 更新到 ${GITHUB_REF_NAME}"
+          git push

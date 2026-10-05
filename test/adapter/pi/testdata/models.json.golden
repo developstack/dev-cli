@@ -1,0 +1,69 @@
+{
+  "providers": {
+    "aidevstack": {
+      "baseUrl": "https://ai.example.com/v1",
+      "api": "openai-completions",
+      "apiKey": "${AIDEV_TOKEN}",
+      "headers": {
+        "X-Aidevstack-Client": "pi/dev-cli-2.0.0"
+      },
+      "models": [
+        {
+          "id": "claude-sonnet-5",
+          "name": "Claude Sonnet 5",
+          "api": "anthropic-messages",
+          "baseUrl": "https://ai.example.com",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 200000,
+          "maxTokens": 64000,
+          "cost": {
+            "input": 3,
+            "output": 15,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "claude-haiku-5",
+          "name": "Claude Haiku 5",
+          "api": "anthropic-messages",
+          "baseUrl": "https://ai.example.com",
+          "input": [
+            "text"
+          ]
+        },
+        {
+          "id": "gpt-5",
+          "name": "GPT-5",
+          "api": "openai-responses",
+          "input": [
+            "text"
+          ],
+          "contextWindow": 400000
+        },
+        {
+          "id": "deepseek-chat",
+          "name": "deepseek-chat",
+          "input": [
+            "text"
+          ]
+        },
+        {
+          "id": "project-default",
+          "name": "project-default（项目路由）",
+          "api": "anthropic-messages",
+          "baseUrl": "https://ai.example.com",
+          "input": [
+            "text"
+          ],
+          "contextWindow": 128000,
+          "maxTokens": 32000
+        }
+      ]
+    }
+  }
+}

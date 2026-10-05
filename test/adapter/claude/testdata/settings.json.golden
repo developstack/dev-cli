@@ -1,0 +1,15 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://ai.example.com",
+    "ANTHROPIC_CUSTOM_HEADERS": "X-Aidevstack-Client: claude-code/dev-cli-2.0.0",
+    "ANTHROPIC_CUSTOM_MODEL_OPTION": "project-default",
+    "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION": "项目路由：平台按候选顺序自动重试与切换",
+    "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME": "project-default（项目路由）",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-sonnet-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5",
+    "ANTHROPIC_MODEL": "claude-sonnet-5",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  },
+  "enableAllProjectMcpServers": false
+}

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "aidevstack": {
+      "type": "http",
+      "url": "https://ai.example.com/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AIDEV_MCP_TOKEN}"
+      }
+    }
+  }
+}

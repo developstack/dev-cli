@@ -1,0 +1,13 @@
+{
+  "defaultProvider": "aidevstack",
+  "defaultModel": "claude-sonnet-5",
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "aidevstack/**"
+  ],
+  "enableInstallTelemetry": false,
+  "defaultProjectTrust": "never",
+  "packages": [],
+  "extensions": [],
+  "skills": []
+}
